@@ -17,7 +17,7 @@ bcd = BreastCancerDataset('./data/breast-cancer/breast-cancer-wisconsin.data', m
 ga = KMeansGroupingAlgorithm(n_clusters=5, n_init="auto", random_state=0)
 
 # de = NaiveDissimilarityCalculator(group_center_method='average', points_distance_method='euclidian')
-de = CBLOFDissimilarityCalculator(group_center_method='average', points_distance_method='euclidian', alpha=0.9, beta=5)
+de = CBLOFDissimilarityCalculator(group_center_method='average', points_distance_method='euclidian', alpha=0.9, beta=5, u=True)
 
 ad = AnomalyDetector(ga, de)
 

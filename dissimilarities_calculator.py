@@ -70,10 +70,11 @@ class NaiveDissimilarityCalculator(DissimilarityCalculator):
 
 
 class CBLOFDissimilarityCalculator(DissimilarityCalculator):
-    def __init__(self, group_center_method, points_distance_method, alpha, beta):
+    def __init__(self, group_center_method, points_distance_method, alpha, beta, u=False):
         super().__init__(group_center_method, points_distance_method)
         self.alpha = alpha
         self.beta = beta
+        self.u = u
 
     def get_groups_sorted_by_size(self):
         groups_sizes = []
@@ -97,11 +98,17 @@ class CBLOFDissimilarityCalculator(DissimilarityCalculator):
     def dissimilarity_factor(self, example_id):
         large_groups, small_groups = self.get_large_and_small_groups()
         point_group_id = self.groups[example_id]
-
+        point_group_size = len(self.get_group(point_group_id))
+        result = None
         if any(point_group_id == lg[0] for lg in large_groups):
-            return self.two_points_distance(self.data[example_id], self.groups_centers[point_group_id])
+            result = self.two_points_distance(self.data[example_id], self.groups_centers[point_group_id])
         else:
             df = 10000000000
             for group_id, _ in large_groups:
                 df = min(df, self.two_points_distance(self.data[example_id], self.groups_centers[group_id]))
-            return df
+            result = df
+
+        if not self.u:
+            result *= point_group_size
+
+        return result

@@ -19,7 +19,7 @@ class DissimilarityCalculator:
         dissimilarities = []
 
         for example_id, example in enumerate(self.data):
-            dissimilarities.append((example_id, self.dissimilarity_factor(example)))
+            dissimilarities.append((example_id, self.dissimilarity_factor(example_id)))
         dissimilarities.sort(key=lambda tup: tup[1], reverse=True)
 
         return dissimilarities
@@ -54,7 +54,7 @@ class DissimilarityCalculator:
                 group.append(example)
         return group
 
-    def dissimilarity_factor(self, point):
+    def dissimilarity_factor(self, example_id):
         pass
 
 
@@ -62,8 +62,46 @@ class NaiveDissimilarityCalculator(DissimilarityCalculator):
     def __init__(self, group_center_method, points_distance_method):
         super().__init__(group_center_method, points_distance_method)
 
-    def dissimilarity_factor(self, point):
+    def dissimilarity_factor(self, example_id):
         df = 10000000000
         for group_id in set(self.groups):
-            df = min(df, self.two_points_distance(point, self.groups_centers[group_id]))
+            df = min(df, self.two_points_distance(self.data[example_id], self.groups_centers[group_id]))
         return df
+
+
+class CBLOFDissimilarityCalculator(DissimilarityCalculator):
+    def __init__(self, group_center_method, points_distance_method, alpha, beta):
+        super().__init__(group_center_method, points_distance_method)
+        self.alpha = alpha
+        self.beta = beta
+
+    def get_groups_sorted_by_size(self):
+        groups_sizes = []
+        for group_id in set(self.groups):
+            groups_sizes.append((group_id, len(self.get_group(group_id))))
+        groups_sizes.sort(key=lambda tup: tup[1], reverse=True)
+        return groups_sizes
+
+    def get_large_and_small_groups(self):
+        groups_sizes = self.get_groups_sorted_by_size()
+        number_of_examples = len(self.data)
+
+        sum_of_groups = 0
+        for idx in range(len(groups_sizes)-1):
+            sum_of_groups += groups_sizes[idx][1]
+            if sum_of_groups >= number_of_examples * self.alpha or groups_sizes[idx][1] / groups_sizes[idx+1][1] >= self.beta:
+                return groups_sizes[:idx+1], groups_sizes[idx+1:]
+
+        return groups_sizes, []
+
+    def dissimilarity_factor(self, example_id):
+        large_groups, small_groups = self.get_large_and_small_groups()
+        point_group_id = self.groups[example_id]
+
+        if any(point_group_id == lg[0] for lg in large_groups):
+            return self.two_points_distance(self.data[example_id], self.groups_centers[point_group_id])
+        else:
+            df = 10000000000
+            for group_id, _ in large_groups:
+                df = min(df, self.two_points_distance(self.data[example_id], self.groups_centers[group_id]))
+            return df

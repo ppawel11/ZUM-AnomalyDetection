@@ -1,5 +1,5 @@
 from anomaly_detector import AnomalyDetector
-from dissimilarities_calculator import NaiveDissimilarityCalculator
+from dissimilarities_calculator import NaiveDissimilarityCalculator, CBLOFDissimilarityCalculator
 from grouping_algorithm import GroupingAlgorithm, KMeansGroupingAlgorithm, DBSCANGroupingAlgorithm
 from anomaly_dataset import AnomalyDataset, BreastCancerDataset
 
@@ -16,11 +16,12 @@ bcd = BreastCancerDataset('./data/breast-cancer/breast-cancer-wisconsin.data', m
 # ga = DBSCANGroupingAlgorithm(eps=5, min_samples=2)
 ga = KMeansGroupingAlgorithm(n_clusters=5, n_init="auto", random_state=0)
 
-de = NaiveDissimilarityCalculator(group_center_method='average', points_distance_method='euclidian')
+# de = NaiveDissimilarityCalculator(group_center_method='average', points_distance_method='euclidian')
+de = CBLOFDissimilarityCalculator(group_center_method='average', points_distance_method='euclidian', alpha=0.9, beta=5)
 
 ad = AnomalyDetector(ga, de)
 
-anomalies = ad.detect_anomalies(bcd, anomalies_percentage=0.05)
+anomalies = ad.detect_anomalies(bcd, anomalies_percentage=0.1)
 
 correct_count = 0
 total_count = 0
@@ -65,3 +66,4 @@ print("Total anomalies detected: ", total_count)
 #
 # print("Estimated number of clusters: %d" % n_clusters_)
 # print("Estimated number of noise points: %d" % n_noise_)
+

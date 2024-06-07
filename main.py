@@ -1,4 +1,5 @@
 from anomaly_detector import AnomalyDetector
+from dissimilarities_calculator import NaiveDissimilarityCalculator
 from grouping_algorithm import GroupingAlgorithm, KMeansGroupingAlgorithm, DBSCANGroupingAlgorithm
 from anomaly_dataset import AnomalyDataset, BreastCancerDataset
 
@@ -12,15 +13,14 @@ from anomaly_dataset import AnomalyDataset, BreastCancerDataset
 
 bcd = BreastCancerDataset('./data/breast-cancer/breast-cancer-wisconsin.data', malignant_percentage_drop=0.84)
 
-ga = DBSCANGroupingAlgorithm(eps=5, min_samples=2)
-# labels = ga.group(bcd)
-# print(labels)
-# print(list(labels).count(-1))
-# print(set(labels))
-# ga = KMeansGroupingAlgorithm(n_clusters=5, n_init="auto", random_state=0)
-ad = AnomalyDetector(bcd, ga)
+# ga = DBSCANGroupingAlgorithm(eps=5, min_samples=2)
+ga = KMeansGroupingAlgorithm(n_clusters=5, n_init="auto", random_state=0)
 
-anomalies = ad.detect_anomalies(anomalies_percentage=0.05)
+de = NaiveDissimilarityCalculator(group_center_method='average', points_distance_method='euclidian')
+
+ad = AnomalyDetector(ga, de)
+
+anomalies = ad.detect_anomalies(bcd, anomalies_percentage=0.05)
 
 correct_count = 0
 total_count = 0

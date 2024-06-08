@@ -10,22 +10,24 @@ from anomaly_dataset import AnomalyDataset, BreastCancerDataset, WineDataset
 #
 # print(ad.detect_anomalies(anomalies_count=2))
 
+import numpy as np
+
+np.random.seed(0)
 
 # wd = WineDataset('./data/wine/wine.data', class_to_drop=1, drop_percentage=0.84)
-
 bcd = BreastCancerDataset('./data/breast-cancer/breast-cancer-wisconsin.data', malignant_percentage_drop=0.84)
 
-# ga = DBSCANGroupingAlgorithm(eps=5, min_samples=2)
-ga = KMeansGroupingAlgorithm(n_clusters=5, n_init="auto", random_state=0)
+ga = DBSCANGroupingAlgorithm(eps=5, min_samples=2)
+# ga = KMeansGroupingAlgorithm(n_clusters=5, n_init="auto", random_state=0)
 
-# de = NaiveDissimilarityCalculator(group_center_method='average', points_distance_method='euclidian')
-de = CBLOFDissimilarityCalculator(group_center_method='average', points_distance_method='euclidian', alpha=0.9, beta=5, u=True)
-# de = LDCOFDissimilarityCalculator(group_center_method='average', points_distance_method='euclidian', alpha=0.9, beta=5)
+dc = NaiveDissimilarityCalculator(group_center_method='average', points_distance_method='euclidian')
+# dc = CBLOFDissimilarityCalculator(group_center_method='average', points_distance_method='euclidian', alpha=0.9, beta=5, u=True)
+# dc = LDCOFDissimilarityCalculator(group_center_method='average', points_distance_method='euclidian', alpha=0.9, beta=5)
 
-ad = AnomalyDetector(ga, de)
+ad = AnomalyDetector(ga, dc)
 
 anomalies = ad.detect_anomalies(bcd, anomalies_percentage=0.1)
-# anomalies = ad.detect_anomalies(wd, anomalies_percentage=0.1)
+# anomalies = ad.detect_anomalies(wd, anomalies_percentage=0.05)
 
 correct_count = 0
 total_count = 0
@@ -33,7 +35,7 @@ for anomaly, label in zip(anomalies, bcd.get_labels()):
 # for anomaly, label in zip(anomalies, wd.get_labels()):
     if anomaly == 1:
         total_count += 1
-        if label == 1:
+        if label == 4:
             correct_count += 1
 
 print("Anomalies detected correctly: ", correct_count)

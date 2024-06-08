@@ -8,7 +8,7 @@ from grouping_algorithm import (
     KMeansGroupingAlgorithm,
     DBSCANGroupingAlgorithm,
 )
-from anomaly_dataset import BreastCancerDataset, WineDataset
+from anomaly_dataset import BreastCancerDataset, WineDataset, AnomalyDataset
 
 import sklearn.metrics as sklm
 
@@ -17,6 +17,9 @@ import seaborn as sns
 import matplotlib.pyplot as plt
 import itertools as it
 import pandas as pd
+
+from sklearn.svm import OneClassSVM
+from sklearn.ensemble import IsolationForest
 
 
 def main():
@@ -30,8 +33,9 @@ def main():
         anomaly_drop_rates=[0.3, 0.5, 0.8],
         anomalies_perc_range=[0.05, 0.1, 0.2],
         n_cluster_range=[3, 4, 5, 6],
-        eps_range=[5],  # [1, 5] and v
+        eps_range=[5, 10, 15],  # [1, 5] and v
         min_samples_range=[2, 3],  # [1, 2, 3] error
+        normalise_data=True,
     )
 
     df = evl.run()
@@ -62,6 +66,7 @@ class Evaluator:
         n_cluster_range: list[int],
         eps_range: list[float],
         min_samples_range: list[int],
+        normalise_data: bool = False,
     ):
         self.dataset_name = dataset_name
         self.anomaly_drop_rates = anomaly_drop_rates
@@ -69,6 +74,27 @@ class Evaluator:
         self.n_cluster_range = n_cluster_range
         self.eps_range = eps_range
         self.min_samples_range = min_samples_range
+        self.normalise_data = normalise_data
+
+    def get_dataset(self, drop_percentage):
+        if self.dataset_name == "breast_cancer":
+            bcd = BreastCancerDataset(
+                "./data/breast-cancer/breast-cancer-wisconsin.data",
+                malignant_percentage_drop=drop_percentage,
+                normalise_data=self.normalise_data,
+            )
+            anomaly_id = 4
+            return bcd, anomaly_id
+        elif self.dataset_name == "wine":
+            bcd = WineDataset(
+                "./data/wine/wine.data",
+                class_to_drop=1,
+                drop_percentage=drop_percentage,
+            )
+            anomaly_id = 1
+            return bcd, anomaly_id
+        else:
+            raise Exception(f"'{self.dataset_name}' dataset not found")
 
     def eval_on_dataset(
         self,
@@ -76,27 +102,13 @@ class Evaluator:
     ) -> np.ndarray:
         evals = []
         for adr, ap in it.product(self.anomaly_drop_rates, self.anomalies_perc_range):
-            if self.dataset_name == "breast_cancer":
-                bcd = BreastCancerDataset(
-                    "./data/breast-cancer/breast-cancer-wisconsin.data",
-                    malignant_percentage_drop=adr,
-                )
-                anomaly_id = 4
-            elif self.dataset_name == "wine":
-                bcd = WineDataset(
-                    "./data/wine/wine.data", class_to_drop=1, drop_percentage=adr
-                )
-                anomaly_id = 1
-            else:
-                raise Exception(f"'{self.dataset_name}' dataset not found")
-
+            bcd, anomaly_id = self.get_dataset(adr)
             anomalies = np.array(ad.detect_anomalies(bcd, anomalies_percentage=ap))
             labels = np.array(bcd.get_labels())
             fpar = eval(labels == anomaly_id, anomalies == 1)
             fpar["anomalies_percentage"] = ap
             fpar["anomaly_drop_rates"] = adr
             evals.append(fpar)
-
         return evals
 
     def eval_kmeans(
@@ -135,23 +147,53 @@ class Evaluator:
                 results.extend(evals)
         return results
 
-    def run(self) -> pd.DataFrame:
-        dc = NaiveDissimilarityCalculator(
-            group_center_method="average", points_distance_method="euclidian"
-        )
+    def eval_classifiers(self, algorithm: str) -> np.ndarray:
+        evals = []
+        for adr in self.anomaly_drop_rates:
+            bcd, anomaly_id = self.get_dataset(adr)
+            x_train, x_test, y_train, y_test = bcd.split(training_percentage=0.7)
+            if algorithm == "one_class_svm":
+                clf = OneClassSVM(gamma="auto").fit(x_train)
+                prediction = clf.predict(x_test)
+            elif algorithm == "isolation_forest":
+                clf = IsolationForest(random_state=0).fit(x_train)
+                prediction = clf.predict(x_test)
+            else:
+                raise Exception(f"algorithm '{algorithm}' not implemented")
 
-        def add_col(data, val):
+            y_train = np.array(y_train)
+            y_test = np.array(y_test)
+
+            fpar = eval(y_test == anomaly_id, prediction == -1)
+            fpar["algorithm"] = algorithm
+            fpar["anomalies_percentage"] = None
+            fpar["anomaly_drop_rates"] = adr
+            fpar["grouping_algorithm"] = None
+            fpar["n_clusters"] = None
+            fpar["eps"] = None
+            fpar["min_samples"] = None
+            evals.append(fpar)
+        return evals
+
+    def run(self) -> pd.DataFrame:
+        def add_col(data, val, name="dissimilarity"):
             for x in data:
-                x["dissimilarity"] = val
+                x[name] = val
             return data
 
         results = []
+
+        dc = NaiveDissimilarityCalculator(
+            group_center_method="average", points_distance_method="euclidian"
+        )
 
         out = self.eval_kmeans(dc)
         results.extend(add_col(out, "naive"))
 
         out = self.eval_dbscan(dc)
         results.extend(add_col(out, "naive"))
+
+        df = pd.DataFrame(results)
 
         dc = CBLOFDissimilarityCalculator(
             group_center_method="average",
@@ -192,6 +234,14 @@ class Evaluator:
 
         out = self.eval_dbscan(dc)
         results.extend(add_col(out, "LDCOF"))
+
+        add_col(results, "clustering", "algorithm")
+
+        out = self.eval_classifiers("one_class_svm")
+        results.extend(add_col(out, None))
+
+        out = self.eval_classifiers("isolation_forest")
+        results.extend(add_col(out, None))
 
         df = pd.DataFrame(results)
 

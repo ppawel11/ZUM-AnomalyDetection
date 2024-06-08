@@ -1,7 +1,7 @@
 from anomaly_detector import AnomalyDetector
 from dissimilarities_calculator import NaiveDissimilarityCalculator, CBLOFDissimilarityCalculator, LDCOFDissimilarityCalculator
 from grouping_algorithm import GroupingAlgorithm, KMeansGroupingAlgorithm, DBSCANGroupingAlgorithm
-from anomaly_dataset import AnomalyDataset, BreastCancerDataset
+from anomaly_dataset import AnomalyDataset, BreastCancerDataset, WineDataset
 
 # from sklearn.cluster import DBSCAN
 # -------------------------------
@@ -10,6 +10,8 @@ from anomaly_dataset import AnomalyDataset, BreastCancerDataset
 #
 # print(ad.detect_anomalies(anomalies_count=2))
 
+
+# wd = WineDataset('./data/wine/wine.data', class_to_drop=1, drop_percentage=0.84)
 
 bcd = BreastCancerDataset('./data/breast-cancer/breast-cancer-wisconsin.data', malignant_percentage_drop=0.84)
 
@@ -23,13 +25,15 @@ de = CBLOFDissimilarityCalculator(group_center_method='average', points_distance
 ad = AnomalyDetector(ga, de)
 
 anomalies = ad.detect_anomalies(bcd, anomalies_percentage=0.1)
+# anomalies = ad.detect_anomalies(wd, anomalies_percentage=0.1)
 
 correct_count = 0
 total_count = 0
 for anomaly, label in zip(anomalies, bcd.get_labels()):
+# for anomaly, label in zip(anomalies, wd.get_labels()):
     if anomaly == 1:
         total_count += 1
-        if label == 4:
+        if label == 1:
             correct_count += 1
 
 print("Anomalies detected correctly: ", correct_count)

@@ -112,3 +112,70 @@ class CBLOFDissimilarityCalculator(DissimilarityCalculator):
             result *= point_group_size
 
         return result
+
+
+class LDCOFDissimilarityCalculator(DissimilarityCalculator):
+    def __init__(self, group_center_method, points_distance_method, alpha, beta):
+        super().__init__(group_center_method, points_distance_method)
+        self.alpha = alpha
+        self.beta = beta
+
+        self.mean_distances_to_groups = None
+
+    def get_groups_sorted_by_size(self):
+        groups_sizes = []
+        for group_id in set(self.groups):
+            groups_sizes.append((group_id, len(self.get_group(group_id))))
+        groups_sizes.sort(key=lambda tup: tup[1], reverse=True)
+        return groups_sizes
+
+    def get_large_and_small_groups(self):
+        groups_sizes = self.get_groups_sorted_by_size()
+        number_of_examples = len(self.data)
+
+        sum_of_groups = 0
+        for idx in range(len(groups_sizes)-1):
+            sum_of_groups += groups_sizes[idx][1]
+            if sum_of_groups >= number_of_examples * self.alpha or groups_sizes[idx][1] / groups_sizes[idx+1][1] >= self.beta:
+                return groups_sizes[:idx+1], groups_sizes[idx+1:]
+
+        return groups_sizes, []
+
+    def get_mean_distance_to_center_in_group(self, group_id):
+        distance_sum = 0
+
+        for example_id in range(len(self.data)):
+            if self.groups[example_id] == group_id:
+                distance_sum += self.two_points_distance(self.data[example_id], self.groups_centers[group_id])
+
+        return distance_sum / len(self.get_group(group_id))
+
+    def calculate_mean_distances_in_groups(self):
+        mean_distances = []
+        for group_id in set(self.groups):
+            if group_id == -1:
+                # Group value -1 stands for noise
+                continue
+            mean_distances.append(self.get_mean_distance_to_center_in_group(group_id))
+        self.mean_distances_to_groups = mean_distances
+
+    def dissimilarity_factor(self, example_id):
+        large_groups, small_groups = self.get_large_and_small_groups()
+        point_group_id = self.groups[example_id]
+
+        self.calculate_mean_distances_in_groups()
+
+        if any(point_group_id == lg[0] for lg in large_groups):
+            point_distance = self.two_points_distance(self.data[example_id], self.groups_centers[point_group_id])
+            return point_distance / self.mean_distances_to_groups[point_group_id]
+        else:
+            distance_to_closest_group = 10000000000
+            closest_group_id = -1
+            for group_id, _ in large_groups:
+                distance_to_group = self.two_points_distance(self.data[example_id], self.groups_centers[group_id])
+
+                if distance_to_group <= distance_to_closest_group:
+                    distance_to_closest_group = distance_to_group
+                    closest_group_id = group_id
+
+            return distance_to_closest_group / self.mean_distances_to_groups[closest_group_id]

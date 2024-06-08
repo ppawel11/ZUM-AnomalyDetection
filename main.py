@@ -1,5 +1,5 @@
 from anomaly_detector import AnomalyDetector
-from dissimilarities_calculator import NaiveDissimilarityCalculator, CBLOFDissimilarityCalculator
+from dissimilarities_calculator import NaiveDissimilarityCalculator, CBLOFDissimilarityCalculator, LDCOFDissimilarityCalculator
 from grouping_algorithm import GroupingAlgorithm, KMeansGroupingAlgorithm, DBSCANGroupingAlgorithm
 from anomaly_dataset import AnomalyDataset, BreastCancerDataset
 
@@ -18,6 +18,7 @@ ga = KMeansGroupingAlgorithm(n_clusters=5, n_init="auto", random_state=0)
 
 # de = NaiveDissimilarityCalculator(group_center_method='average', points_distance_method='euclidian')
 de = CBLOFDissimilarityCalculator(group_center_method='average', points_distance_method='euclidian', alpha=0.9, beta=5, u=True)
+# de = LDCOFDissimilarityCalculator(group_center_method='average', points_distance_method='euclidian', alpha=0.9, beta=5)
 
 ad = AnomalyDetector(ga, de)
 

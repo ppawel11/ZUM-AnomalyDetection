@@ -2,7 +2,8 @@ from anomaly_detector import AnomalyDetector
 from dissimilarities_calculator import NaiveDissimilarityCalculator, CBLOFDissimilarityCalculator, LDCOFDissimilarityCalculator
 from grouping_algorithm import GroupingAlgorithm, KMeansGroupingAlgorithm, DBSCANGroupingAlgorithm
 from anomaly_dataset import AnomalyDataset, BreastCancerDataset, WineDataset
-
+from sklearn.ensemble import IsolationForest
+from sklearn.svm import OneClassSVM
 # from sklearn.cluster import DBSCAN
 # -------------------------------
 
@@ -16,6 +17,32 @@ np.random.seed(0)
 
 # wd = WineDataset('./data/wine/wine.data', class_to_drop=1, drop_percentage=0.84)
 bcd = BreastCancerDataset('./data/breast-cancer/breast-cancer-wisconsin.data', malignant_percentage_drop=0.84)
+
+# x_train, x_test, y_train, y_test = wd.split(outlier_class=1, training_percentage=0.7)
+
+# print(len(x_train), len(x_test), len(y_train), len(y_test))
+
+# clf = IsolationForest(random_state=0).fit(x_train)
+# clf = OneClassSVM(gamma='auto').fit(x_train)
+# prediction = clf.predict(x_test)
+
+# print(prediction)
+# print(y_test)
+
+# correct_anomalies = 0
+# all_anomalies = 0
+# actual_anomalies = 0
+# for pred, label in zip(prediction, y_test):
+#     if label == 1:
+#         actual_anomalies += 1
+#     if pred == -1:
+#         all_anomalies += 1
+#         if label == 1:
+#             correct_anomalies += 1
+#
+# print("Anomalies detected correctly: ", correct_anomalies)
+# print("Total anomalies detected: ", all_anomalies)
+# print("Total number of anomalies: ", actual_anomalies)
 
 ga = DBSCANGroupingAlgorithm(eps=5, min_samples=2)
 # ga = KMeansGroupingAlgorithm(n_clusters=5, n_init="auto", random_state=0)

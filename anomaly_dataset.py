@@ -69,7 +69,27 @@ class BreastCancerDataset(AnomalyDataset):
 
     def get_labels(self):
         return self.data['class'].tolist()
-    
+
+    def split(self, training_percentage):
+        anomalies_df = self.data[self.data["class"] == 4]
+        normal_df = self.data[self.data["class"] != 4]
+
+        anomalies_df_idx = anomalies_df.index.tolist()
+        anomalies_df_train_idx = np.random.choice(anomalies_df_idx, size=int(len(anomalies_df_idx) * training_percentage), replace=False)
+        anomalies_df_train = anomalies_df[anomalies_df.index.isin(anomalies_df_train_idx)]
+        anomalies_df_test = anomalies_df.drop(anomalies_df_train_idx)
+
+        normal_df_idx = normal_df.index.tolist()
+        normal_df_train_idx = np.random.choice(normal_df_idx, size=int(len(normal_df_idx) * training_percentage), replace=False)
+        normal_df_train = normal_df[normal_df.index.isin(normal_df_train_idx)]
+        normal_df_test = normal_df.drop(normal_df_train_idx)
+
+        x_train = pd.concat([anomalies_df_train.drop(['class'], axis=1), normal_df_train.drop(['class'], axis=1)]).sample(frac=1).reset_index(drop=True).values.tolist()
+        y_train = pd.concat([anomalies_df_train['class'], normal_df_train['class']]).sample(frac=1).reset_index(drop=True).values.tolist()
+        x_test = pd.concat([anomalies_df_test.drop(['class'], axis=1), normal_df_test.drop(['class'], axis=1)]).sample(frac=1).reset_index(drop=True).values.tolist()
+        y_test = pd.concat([anomalies_df_test['class'], normal_df_test['class']]).sample(frac=1).reset_index(drop=True).values.tolist()
+
+        return x_train, x_test, y_train, y_test
     
 class WineDataset(AnomalyDataset):
     def __init__(self, filename, class_to_drop, drop_percentage):
@@ -109,3 +129,24 @@ class WineDataset(AnomalyDataset):
 
     def get_labels(self):
         return self.data['class'].tolist()
+
+    def split(self, outlier_class, training_percentage):
+        anomalies_df = self.data[self.data["class"] == outlier_class]
+        normal_df = self.data[self.data["class"] != outlier_class]
+
+        anomalies_df_idx = anomalies_df.index.tolist()
+        anomalies_df_train_idx = np.random.choice(anomalies_df_idx, size=int(len(anomalies_df_idx) * training_percentage), replace=False)
+        anomalies_df_train = anomalies_df[anomalies_df.index.isin(anomalies_df_train_idx)]
+        anomalies_df_test = anomalies_df.drop(anomalies_df_train_idx)
+
+        normal_df_idx = normal_df.index.tolist()
+        normal_df_train_idx = np.random.choice(normal_df_idx, size=int(len(normal_df_idx) * training_percentage), replace=False)
+        normal_df_train = normal_df[normal_df.index.isin(normal_df_train_idx)]
+        normal_df_test = normal_df.drop(normal_df_train_idx)
+
+        x_train = pd.concat([anomalies_df_train.drop(['class'], axis=1), normal_df_train.drop(['class'], axis=1)]).sample(frac=1).reset_index(drop=True).values.tolist()
+        y_train = pd.concat([anomalies_df_train['class'], normal_df_train['class']]).sample(frac=1).reset_index(drop=True).values.tolist()
+        x_test = pd.concat([anomalies_df_test.drop(['class'], axis=1), normal_df_test.drop(['class'], axis=1)]).sample(frac=1).reset_index(drop=True).values.tolist()
+        y_test = pd.concat([anomalies_df_test['class'], normal_df_test['class']]).sample(frac=1).reset_index(drop=True).values.tolist()
+
+        return x_train, x_test, y_train, y_test

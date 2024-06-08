@@ -19,6 +19,25 @@ import itertools as it
 import pandas as pd
 
 
+def main():
+    np.random.seed(0)
+
+    dataset_name = "wine"
+    # dataset_name = "breast_cancer"
+
+    evl = Evaluator(
+        dataset_name,
+        anomaly_drop_rates=[0.3, 0.5, 0.8],
+        anomalies_perc_range=[0.05, 0.1, 0.2],
+        n_cluster_range=[3, 4, 5, 6],
+        eps_range=[5],  # [1, 5] and v
+        min_samples_range=[2, 3],  # [1, 2, 3] error
+    )
+
+    df = evl.run()
+    df.to_csv(f"{dataset_name}_eval_data.csv")
+
+
 def eval(y_true: np.ndarray, y_pred: np.ndarray) -> np.ndarray:
     fscore = sklm.f1_score(y_true, y_pred)
     precision = sklm.precision_score(y_true, y_pred)
@@ -193,24 +212,6 @@ class Evaluator:
         plt.show()
 
         return df
-
-
-def main():
-    np.random.seed(0)
-
-    dataset_name = "breast_cancer"
-
-    evl = Evaluator(
-        dataset_name,
-        anomaly_drop_rates=[0.3, 0.5, 0.8],
-        anomalies_perc_range=[0.05, 0.1, 0.2],
-        n_cluster_range=[3, 4, 5, 6],
-        eps_range=[13, 17, 23],
-        min_samples_range=[2],
-    )
-
-    df = evl.run()
-    df.to_csv(f"{dataset_name}_eval_data.csv")
 
 
 if __name__ == "__main__":
